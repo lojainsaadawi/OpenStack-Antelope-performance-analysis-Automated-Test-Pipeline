@@ -1,0 +1,21 @@
+---
+
+openstack_nodes:
+  controller: "192.168.122.55"
+  compute1: "192.168.122.199"
+  compute2: "192.168.122.18"
+
+# Prometheus
+prometheus_version: "2.45.0"
+prometheus_port: 9090
+scrape_interval: 5s
+
+# Node Exporter
+node_exporter_version: "1.6.1"
+node_exporter_port: 9100
+
+# tests sets
+test_duration: 30
+udp_bandwidth: "1000M"
+ping_count: 100
+...

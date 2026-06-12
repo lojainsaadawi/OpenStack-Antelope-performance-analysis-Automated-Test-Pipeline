@@ -1,0 +1,37 @@
+---
+- name: Read TCP JSON
+  set_fact:
+    tcp_data: "{{ lookup('file', '{{ playbook_dir }}/../results/{{ item }}/{{ item }}_tcp.json') | from_json }}"
+
+- name: Read UDP JSON
+  set_fact:
+    udp_data: "{{ lookup('file', '{{ playbook_dir }}/../results/{{ item }}/{{ item }}_udp.json') | from_json }}"
+
+- name: Read ping text
+  set_fact:
+    ping_data: "{{ lookup('file', '{{ playbook_dir }}/../results/{{ item }}/{{ item }}_ping.txt') }}"
+
+- name: Extract TCP throughput
+  set_fact:
+    tcp_throughput: "{{ (tcp_data.end.sum_received.bits_per_second / 1000000) | round(2) }}"
+
+- name: Extract UDP throughput
+  set_fact:
+    udp_throughput: "{{ (udp_data.end.sum.bits_per_second / 1000000) | round(2) }}"
+
+- name: Extract UDP jitter
+  set_fact:
+    udp_jitter: "{{ (udp_data.end.sum.jitter_ms | default(0)) | round(3) }}"
+
+- name: Extract packet loss
+  set_fact:
+    packet_loss: "{{ (udp_data.end.sum.lost_percent | default(0)) | round(2) }}"
+
+- name: Extract ping average
+  set_fact:
+    ping_avg: "{{ ping_data | regex_search('rtt min/avg/max/mdev = [0-9.]+/([0-9.]+)/', '\\1') | first | default('N/A') }}"
+
+- name: Append to report lines
+  set_fact:
+    report_lines: "{{ report_lines + [ [item, tcp_throughput, udp_throughput, udp_jitter, packet_loss, ping_avg] ] }}"
+...

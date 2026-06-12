@@ -1,0 +1,15 @@
+external_network   = "ExtNet"
+image_name         = "focal-server-cloudimg-amd64-vnx"
+flavor_name        = "m1.smaller"
+keypair_name       = "p3-key"
+network_prefix     = "perf"
+
+subnet1_cidr             = "10.1.1.0/24"
+subnet1_gateway          = "10.1.1.1"
+subnet1_allocation_start = "10.1.1.10"
+subnet1_allocation_end   = "10.1.1.50"
+
+subnet2_cidr             = "10.1.2.0/24"
+subnet2_gateway          = "10.1.2.1"
+subnet2_allocation_start = "10.1.2.10"
+subnet2_allocation_end   = "10.1.2.50"

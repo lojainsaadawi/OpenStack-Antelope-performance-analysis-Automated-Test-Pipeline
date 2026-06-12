@@ -1,0 +1,5 @@
+Scenario,TCP Throughput (Mbps),UDP Throughput (Mbps),Jitter (ms),Packet Loss (%),Ping Avg (ms)
+scenario1,5964.93,413.51,0.012,0.46,0.989
+scenario2,5760.26,289.73,0.08,0.75,0.981
+scenario3,6589.79,250.38,0.097,0.77,1.272
+scenario4,4676.31,409.36,0.097,2.2,1.227

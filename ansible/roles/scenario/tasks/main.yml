@@ -1,0 +1,114 @@
+---
+- name: Create results directory on control node
+  delegate_to: localhost
+  file:
+    path: "{{ playbook_dir }}/../results"
+    state: directory
+  run_once: true
+
+- name: "Power ON VMs for {{ scenario_name }}"
+  delegate_to: controller
+  remote_user: root
+  shell: |
+    source /root/bin/p3-auto-openrc.sh
+    openstack server start {{ item }}
+  loop: "{{ groups[scenario_name] }}"
+  args:
+    executable: /bin/bash
+
+- name: "Wait for VMs to boot and SSH to become available"
+  wait_for_connection:
+    delay: 10
+    timeout: 200
+  delegate_to: "{{ item }}"
+  loop: "{{ groups[scenario_name] }}"
+
+- name: "Configure apt to use Squid proxy on controller"
+  copy:
+    dest: /etc/apt/apt.conf.d/95proxy
+    content: |
+      Acquire::http::Proxy "http://10.0.10.11:3128";
+      Acquire::https::Proxy "http://10.0.10.11:3128";
+  become: yes
+  delegate_to: "{{ item }}"
+  loop: "{{ groups[scenario_name] }}"
+
+- name: "Install iperf3 on current scenario VMs"
+  apt:
+    name: iperf3
+    state: present
+    update_cache: yes
+  delegate_to: "{{ item }}"
+  loop: "{{ groups[scenario_name] }}"
+  become: yes
+
+- name: Get server and client IPs
+  set_fact:
+    server_ip: "{{ hostvars[groups[scenario_name][0]].ansible_host }}"
+    client_ip: "{{ hostvars[groups[scenario_name][1]].ansible_host }}"
+  run_once: true
+  delegate_to: localhost
+
+- name: Start iperf3 server on first VM (Background)
+  delegate_to: "{{ groups[scenario_name][0] }}"
+  shell: "nohup iperf3 -s > /dev/null 2>&1 &"
+  async: 600
+  poll: 0
+
+- name: Wait for server to be ready
+  pause: seconds=5
+
+- name: Run TCP test
+  delegate_to: "{{ groups[scenario_name][1] }}"
+  shell: "iperf3 -c {{ server_ip }} -t {{ test_duration }} -J > /tmp/{{ scenario_name }}_tcp.json"
+  args:
+    creates: "/tmp/{{ scenario_name }}_tcp.json"
+
+- name: Run UDP test
+  delegate_to: "{{ groups[scenario_name][1] }}"
+  shell: "iperf3 -u -c {{ server_ip }} -t {{ test_duration }} -b {{ udp_bandwidth }} -J > /tmp/{{ scenario_name }}_udp.json"
+  args:
+    creates: "/tmp/{{ scenario_name }}_udp.json"
+
+- name: Run ping test
+  delegate_to: "{{ groups[scenario_name][0] }}"
+  shell: "ping -c {{ ping_count }} {{ client_ip }} > /tmp/{{ scenario_name }}_ping.txt"
+  args:
+    creates: "/tmp/{{ scenario_name }}_ping.txt"
+
+- name: Kill iperf3 server
+  delegate_to: "{{ groups[scenario_name][0] }}"
+  shell: pkill iperf3 || true
+  ignore_errors: yes
+
+- name: "Fetch TCP results"
+  fetch:
+    src: "/tmp/{{ scenario_name }}_tcp.json"
+    dest: "../results/{{ scenario_name }}/"
+    flat: yes
+  delegate_to: "{{ groups[scenario_name][1] }}"
+
+- name: "Fetch UDP results"
+  fetch:
+    src: "/tmp/{{ scenario_name }}_udp.json"
+    dest: "../results/{{ scenario_name }}/"
+    flat: yes
+  delegate_to: "{{ groups[scenario_name][1] }}"
+
+- name: "Fetch Ping results"
+  fetch:
+    src: "/tmp/{{ scenario_name }}_ping.txt"
+    dest: "../results/{{ scenario_name }}/"
+    flat: yes
+  delegate_to: "{{ groups[scenario_name][0] }}"
+
+- name: "Power OFF VMs for {{ scenario_name }}"
+  delegate_to: controller
+  remote_user: root
+  shell: |
+    source /root/bin/p3-auto-openrc.sh
+    openstack server stop {{ item }}
+  loop: "{{ groups[scenario_name] }}"
+  args:
+    executable: /bin/bash
+...

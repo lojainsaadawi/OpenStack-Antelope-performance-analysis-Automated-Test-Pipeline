@@ -1,0 +1,17 @@
+---
+- name: Install Prometheus on controller
+  hosts: controller
+  become: yes
+  vars_files:
+    - ../vars/main.yml
+  roles:
+    - role: ../roles/prometheus
+
+- name: Install Node Exporter on all OpenStack nodes
+  hosts: openstack_nodes
+  become: yes
+  vars_files:
+    - ../vars/main.yml
+  roles:
+    - role: ../roles/node_exporter
+...

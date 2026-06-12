@@ -1,0 +1,23 @@
+---
+- name: Generate final CSV report
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Read all result files
+      set_fact:
+        scenarios: [scenario1, scenario2, scenario3, scenario4]
+
+    - name: Build report data
+      set_fact:
+        report_lines: []
+      run_once: yes
+
+    - name: Loop over scenarios and extract data
+      include_tasks: extract_data.yml
+      loop: "{{ scenarios }}"
+
+    - name: Write CSV report
+      template:
+        src: "../templates/report.csv.j2"
+        dest: "{{ playbook_dir }}/../results/final_report.csv"
+...

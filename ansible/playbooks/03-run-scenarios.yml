@@ -1,0 +1,20 @@
+---
+- name: Run performance scenarios
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../vars/main.yml
+  vars:
+    scenarios:
+      - scenario1
+      - scenario2
+      - scenario3
+      - scenario4
+  tasks:
+    - name: Include scenario role for each scenario
+      include_role:
+        name: ../roles/scenario
+      vars:
+        scenario_name: "{{ item }}"
+      loop: "{{ scenarios }}"
+...
